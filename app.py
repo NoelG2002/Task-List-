@@ -26,7 +26,12 @@ def save_tasks(tasks):
         json.dump(tasks, f, indent=4)
 
 
-@app.route("/whatsapp", methods=["POST","GET"])
+def normalize_text(text):
+    """Normalize text by removing extra spaces and converting to lowercase."""
+    return " ".join(text.split()).lower()
+
+
+@app.route("/whatsapp", methods=["POST", "GET"])
 def whatsapp():
     incoming_msg = request.values.get('Body', '').strip()
     sender = request.values.get('From', '')
@@ -37,7 +42,7 @@ def whatsapp():
 
     # Add task functionality
     if incoming_msg.lower().startswith("add:"):
-        task = incoming_msg[4:].strip()
+        task = normalize_text(incoming_msg[4:].strip())
         task_id = len(tasks) + 1
         tasks.append({
             "id": task_id,
@@ -50,22 +55,22 @@ def whatsapp():
 
     # Mark task as complete functionality
     elif incoming_msg.lower().startswith("complete:"):
-        task = incoming_msg[9:].strip()
+        task = normalize_text(incoming_msg[9:].strip())
         for t in tasks:
-            if t["task"].lower() == task.lower() and t["status"] == "Pending":
+            if normalize_text(t["task"]) == task and t["status"] == "Pending":
                 t["status"] = "Completed"
                 save_tasks(tasks)
-                reply = f"Task '{task}' marked as completed!"
+                reply = f"Task '{t['task']}' marked as completed!"
                 break
         else:
             reply = f"Task '{task}' not found or already completed."
 
     # Delete task functionality
     elif incoming_msg.lower().startswith("delete:"):
-        task = incoming_msg[8:].strip()
+        task = normalize_text(incoming_msg[8:].strip())
         task_found = False
         for t in tasks:
-            if t["task"].lower() == task.lower():
+            if normalize_text(t["task"]) == task:
                 tasks.remove(t)
                 task_found = True
                 break
